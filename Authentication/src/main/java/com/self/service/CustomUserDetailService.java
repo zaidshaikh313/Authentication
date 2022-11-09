@@ -1,7 +1,10 @@
 package com.self.service;
 
+import com.self.model.CustomUserDetails;
+import com.self.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -9,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class CustomUserDetailService implements UserDetailsService {
@@ -18,8 +24,17 @@ public class CustomUserDetailService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-      com.self.model.User getUser= userService.findByUsername(username).orElseThrow(()->new UsernameNotFoundException("Invalid Username"));
+        Optional<User> optionalUser = userService.findByUsername(username);
+        optionalUser
+                .orElseThrow(() -> new UsernameNotFoundException("Username not Found"));
+//        return optionalUser.map(CustomUserDetails::new).get();
+        //    return new CustomUserDetails(optionalUser.get());
+//
+        List<GrantedAuthority> authorityList = optionalUser.get().getRoles().stream()
+                .map(role ->
+                        new SimpleGrantedAuthority("ROLE_" + role.getRole_name()))
+                .collect(Collectors.toList());
+        return new org.springframework.security.core.userdetails.User(optionalUser.get().getUsername(), optionalUser.get().getPassword(), authorityList);
 
-        return new User(getUser.getUsername(),getUser.getPassword(),new ArrayList<>());
     }
 }
